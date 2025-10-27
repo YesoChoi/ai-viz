@@ -42,7 +42,7 @@
             display: flex;
             flex-direction: column;  /* 수직 방향으로 배치 */
             align-items: center;  /* 가로 중앙 정렬 */
-            padding: 20px;
+            padding: 20px 5px 20px 20px;  /* 상단 20px, 우측 5px (1/4로 축소), 하단 20px, 좌측 20px */
             gap: 20px;  /* 영상 간 간격 */
         }
 
@@ -91,11 +91,10 @@
             font-weight: bold;
         }
 
-        /* 비디오 컨테이너: 우측 섹션에 배치된 YouTube 영상 */
+        /* 비디오 컨테이너: 우측 섹션에 배치된 YouTube 영상 (1/2 크기로 축소 및 고정) */
         .videoContainer {
-            width: 100%;  /* 부모 컨테이너 너비에 맞춤 */
-            max-width: 500px;  /* 최대 너비 */
-            aspect-ratio: 16/9;  /* 16:9 비율 유지 */
+            width: 250px;  /* 고정 너비 (이전의 1/2) */
+            height: 140.625px;  /* 고정 높이 (16:9 비율 유지: 250 * 9/16) */
             box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);  /* 그림자 효과 */
             border-radius: 8px;  /* 모서리 둥글게 */
             overflow: hidden;  /* 둥근 모서리 적용 */
