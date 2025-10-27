@@ -151,6 +151,7 @@
 
         // === 캔버스 리셋 함수 (검은색으로 다시 채우기) ===
         function resetCanvas() {
+            ctx.globalCompositeOperation = 'source-over';  // 일반 그리기 모드로 복원
             ctx.fillStyle = '#000';  // 채우기 색상을 검은색으로 설정
             ctx.fillRect(0, 0, canvas.width, canvas.height);  // 캔버스 전체를 검은색으로 채움
         }
