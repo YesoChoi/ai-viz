@@ -18,9 +18,32 @@
             height: 100vh;  /* 뷰포트 높이의 100% */
             overflow: hidden;  /* 스크롤 숨김 */
             font-family: 'Georgia', serif;  /* 세리프 폰트 사용 */
-            position: relative;  /* 자식 요소의 절대 위치 기준점 */
             background: #000;  /* 검은색 배경 */
+            display: flex;  /* Flexbox 레이아웃 */
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 좌측 영역: 인터랙션 섹션 */
+        #leftSection {
+            width: 50%;  /* 화면의 왼쪽 절반 */
+            height: 100vh;
+            position: relative;
             cursor: crosshair;  /* 십자가 모양 커서 */
+        }
+
+        /* 우측 영역: 비디오 섹션 */
+        #rightSection {
+            width: 50%;  /* 화면의 오른쪽 절반 */
+            height: 100vh;
+            background: #000;  /* 검은색 배경 */
+            overflow-y: auto;  /* 세로 스크롤 가능 */
+            overflow-x: hidden;  /* 가로 스크롤 숨김 */
+            display: flex;
+            flex-direction: column;  /* 수직 방향으로 배치 */
+            align-items: center;  /* 가로 중앙 정렬 */
+            padding: 20px;
+            gap: 20px;  /* 영상 간 간격 */
         }
 
         /* 텍스트 레이어: 흰색 배경의 텍스트를 담는 레이어 (캔버스 아래 위치) */
@@ -68,25 +91,21 @@
             font-weight: bold;
         }
 
-        /* 비디오 컨테이너: 독립적으로 떠있는 YouTube 영상 (2/3 크기로 축소) */
-        #videoContainer {
-            position: fixed;  /* 고정 위치 (스크롤에도 따라다님) */
-            bottom: 30px;  /* 하단에서 30px */
-            right: 30px;  /* 우측에서 30px */
-            width: 320px;  /* 컨테이너 너비 (480의 2/3) */
-            height: 180px;  /* 컨테이너 높이 (270의 2/3) */
-            z-index: 10;  /* 레이어 순서: 모든 레이어 위에 독립적으로 배치 */
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);  /* 그림자 효과 */
-            pointer-events: none;  /* 마우스 이벤트가 아래 레이어로 전달 (드래그 인터랙션 방해 안함) */
+        /* 비디오 컨테이너: 우측 섹션에 배치된 YouTube 영상 */
+        .videoContainer {
+            width: 100%;  /* 부모 컨테이너 너비에 맞춤 */
+            max-width: 500px;  /* 최대 너비 */
+            aspect-ratio: 16/9;  /* 16:9 비율 유지 */
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);  /* 그림자 효과 */
             border-radius: 8px;  /* 모서리 둥글게 */
             overflow: hidden;  /* 둥근 모서리 적용 */
+            flex-shrink: 0;  /* 크기 고정 */
         }
 
-        #videoContainer iframe {
+        .videoContainer iframe {
             width: 100%;  /* 컨테이너 너비에 맞춤 */
             height: 100%;  /* 컨테이너 높이에 맞춤 */
             border: none;  /* 테두리 제거 */
-            pointer-events: auto;  /* iframe은 클릭 가능 (비디오 컨트롤 작동) */
         }
 
         /* 캔버스: 검은색 오버레이 레이어 (텍스트 위에 위치) */
@@ -124,31 +143,77 @@
     </style>
 </head>
 <body>
-    <!-- 레이어 1-1: 비디오 컨테이너 (YouTube 영상, 자동 재생) -->
-    <div id="videoContainer">
-        <iframe 
-            src="https://www.youtube.com/embed/Nn6crYJ4bdQ?autoplay=1&mute=1&controls=1&rel=0&loop=1&playlist=Nn6crYJ4bdQ" 
-            title="YouTube video player" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-            allowfullscreen>
-        </iframe>
-    </div>
+    <!-- 좌측 영역: 마우스 인터랙션 -->
+    <div id="leftSection">
+        <!-- 레이어 1: 텍스트 레이어 (맨 아래) -->
+        <div id="textLayer">
+            <div class="text-content">
+                <h1 id="mainText">
+                    <!-- 텍스트는 JavaScript로 동적 생성 -->
+                </h1>
+            </div>
+        </div>
 
-    <!-- 레이어 1-2: 텍스트 레이어 (맨 아래) -->
-    <div id="textLayer">
-        <div class="text-content">
-            <h1 id="mainText">
-                <!-- 텍스트는 JavaScript로 동적 생성 -->
-            </h1>
+        <!-- 레이어 2: 캔버스 레이어 (검은색 오버레이, 마우스로 지울 수 있음) -->
+        <canvas id="canvas"></canvas>
+        
+        <!-- 레이어 3: 안내 문구 (맨 위, 3초 후 사라짐) -->
+        <div class="instruction">
+            마우스를 드래그하여 텍스트를 드러내세요
         </div>
     </div>
 
-    <!-- 레이어 2: 캔버스 레이어 (검은색 오버레이, 마우스로 지울 수 있음) -->
-    <canvas id="canvas"></canvas>
-    
-    <!-- 레이어 3: 안내 문구 (맨 위, 3초 후 사라짐) -->
-    <div class="instruction">
-        마우스를 드래그하여 텍스트를 드러내세요
+    <!-- 우측 영역: 영상들 (수직으로 반복 배치) -->
+    <div id="rightSection">
+        <!-- 비디오 1 -->
+        <div class="videoContainer">
+            <iframe 
+                src="https://www.youtube.com/embed/Nn6crYJ4bdQ?autoplay=1&mute=1&controls=1&rel=0&loop=1&playlist=Nn6crYJ4bdQ" 
+                title="YouTube video player" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                allowfullscreen>
+            </iframe>
+        </div>
+
+        <!-- 비디오 2 -->
+        <div class="videoContainer">
+            <iframe 
+                src="https://www.youtube.com/embed/Nn6crYJ4bdQ?autoplay=1&mute=1&controls=1&rel=0&loop=1&playlist=Nn6crYJ4bdQ" 
+                title="YouTube video player" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                allowfullscreen>
+            </iframe>
+        </div>
+
+        <!-- 비디오 3 -->
+        <div class="videoContainer">
+            <iframe 
+                src="https://www.youtube.com/embed/Nn6crYJ4bdQ?autoplay=1&mute=1&controls=1&rel=0&loop=1&playlist=Nn6crYJ4bdQ" 
+                title="YouTube video player" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                allowfullscreen>
+            </iframe>
+        </div>
+
+        <!-- 비디오 4 -->
+        <div class="videoContainer">
+            <iframe 
+                src="https://www.youtube.com/embed/Nn6crYJ4bdQ?autoplay=1&mute=1&controls=1&rel=0&loop=1&playlist=Nn6crYJ4bdQ" 
+                title="YouTube video player" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                allowfullscreen>
+            </iframe>
+        </div>
+
+        <!-- 비디오 5 -->
+        <div class="videoContainer">
+            <iframe 
+                src="https://www.youtube.com/embed/Nn6crYJ4bdQ?autoplay=1&mute=1&controls=1&rel=0&loop=1&playlist=Nn6crYJ4bdQ" 
+                title="YouTube video player" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                allowfullscreen>
+            </iframe>
+        </div>
     </div>
 
     <script>
@@ -189,8 +254,9 @@
 
         // === 캔버스 크기 조정 함수 ===
         function resizeCanvas() {
-            canvas.width = window.innerWidth;  // 캔버스 너비를 윈도우 너비에 맞춤
-            canvas.height = window.innerHeight;  // 캔버스 높이를 윈도우 높이에 맞춤
+            const leftSection = document.getElementById('leftSection');
+            canvas.width = leftSection.offsetWidth;  // 캔버스 너비를 좌측 섹션 너비에 맞춤
+            canvas.height = leftSection.offsetHeight;  // 캔버스 높이를 좌측 섹션 높이에 맞춤
             resetCanvas();  // 캔버스를 검은색으로 채움
         }
 
@@ -202,7 +268,8 @@
         // === 드로잉 시작 함수 ===
         function startDrawing(e) {
             isDrawing = true;  // 드로잉 모드 활성화
-            const rect = canvas.getBoundingClientRect();
+            const leftSection = document.getElementById('leftSection');
+            const rect = leftSection.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             [lastX, lastY] = [x, y];  // 시작 지점 저장
@@ -213,7 +280,8 @@
             if (!isDrawing) return;  // 드로잉 모드가 아니면 종료
 
             // 마우스 좌표를 캔버스 좌표로 변환
-            const rect = canvas.getBoundingClientRect();
+            const leftSection = document.getElementById('leftSection');
+            const rect = leftSection.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
 
@@ -245,10 +313,11 @@
         }
 
         // === 마우스 이벤트 리스너 등록 ===
-        canvas.addEventListener('mousedown', startDrawing);  // 마우스 버튼을 누르면 드로잉 시작
-        // document 레벨에서 mousemove와 mouseup 감지: 비디오 영역 위에서도 계속 드래그 가능
-        document.addEventListener('mousemove', draw);  // document 전체에서 마우스 이동 감지
-        document.addEventListener('mouseup', stopDrawing);  // document 레벨에서 mouseup 감지
+        const leftSection = document.getElementById('leftSection');
+        leftSection.addEventListener('mousedown', startDrawing);  // 좌측 섹션에서 마우스 버튼을 누르면 드로잉 시작
+        leftSection.addEventListener('mousemove', draw);  // 좌측 섹션에서 마우스 이동 시 그리기
+        leftSection.addEventListener('mouseup', stopDrawing);  // 좌측 섹션에서 마우스 버튼을 떼면 드로잉 종료 + 리셋
+        leftSection.addEventListener('mouseleave', stopDrawing);  // 좌측 섹션 밖으로 나가면 드로잉 종료 + 리셋
 
         // === 터치 이벤트 지원 (모바일/태블릿용) ===
         
