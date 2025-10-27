@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Text Reveal</title>
+    <style>
+        /* 전체 요소의 기본 여백과 패딩 제거 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* body 스타일: 전체 화면 크기로 설정 */
+        body {
+            width: 100vw;  /* 뷰포트 너비의 100% */
+            height: 100vh;  /* 뷰포트 높이의 100% */
+            overflow: hidden;  /* 스크롤 숨김 */
+            font-family: 'Georgia', serif;  /* 세리프 폰트 사용 */
+            position: relative;  /* 자식 요소의 절대 위치 기준점 */
+            background: #000;  /* 검은색 배경 */
+            cursor: crosshair;  /* 십자가 모양 커서 */
+        }
+
+        /* 텍스트 레이어: 흰색 배경의 텍스트를 담는 레이어 (캔버스 아래 위치) */
+        #textLayer {
+            position: absolute;  /* 절대 위치 */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;  /* Flexbox 레이아웃 사용 */
+            align-items: center;  /* 세로 중앙 정렬 */
+            justify-content: center;  /* 가로 중앙 정렬 */
+            padding: 40px;
+            z-index: 1;  /* 레이어 순서: 맨 아래 */
+        }
+
+        /* 텍스트 컨텐츠 영역: 흰색 배경 전체 화면 */
+        .text-content {
+            background: white;  /* 흰색 배경 */
+            padding: 40px;
+            width: 100%;  /* 부모의 100% 너비 */
+            height: 100%;  /* 부모의 100% 높이 */
+            text-align: center;  /* 텍스트 중앙 정렬 */
+            display: flex;
+            align-items: center;  /* 세로 중앙 정렬 */
+            justify-content: center;  /* 가로 중앙 정렬 */
+        }
+
+        /* 메인 제목 스타일 */
+        .text-content h1 {
+            font-size: 3.5rem;  /* 폰트 크기 */
+            line-height: 1.4;  /* 줄 간격 */
+            color: #000;  /* 검은색 텍스트 */
+            font-weight: normal;  /* 일반 두께 */
+        }
+
+        /* 이름 스타일: 이탤릭체 + 반투명 */
+        .name {
+            font-style: italic;  /* 이탤릭체 */
+            opacity: 0.4;  /* 40% 투명도 */
+        }
+
+        /* 강조 텍스트: 볼드체 */
+        .highlight {
+            font-weight: bold;
+        }
+
+        /* 캔버스: 검은색 오버레이 레이어 (텍스트 위에 위치) */
+        #canvas {
+            position: absolute;  /* 절대 위치 */
+            top: 0;
+            left: 0;
+            z-index: 2;  /* 레이어 순서: 텍스트 위 */
+            cursor: crosshair;  /* 십자가 커서 */
+        }
+
+        /* 안내 문구: 초기에 나타났다가 사라짐 */
+        .instruction {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);  /* 정확한 중앙 정렬 */
+            color: rgba(255, 255, 255, 0.6);  /* 반투명 흰색 */
+            font-size: 1.2rem;
+            text-align: center;
+            z-index: 3;  /* 레이어 순서: 맨 위 */
+            pointer-events: none;  /* 클릭 이벤트 무시 */
+            animation: fadeOut 3s forwards;  /* 3초 동안 페이드아웃 애니메이션 */
+        }
+
+        /* 페이드아웃 애니메이션 정의 */
+        @keyframes fadeOut {
+            0%, 70% {
+                opacity: 1;  /* 0~70% 시점: 불투명 */
+            }
+            100% {
+                opacity: 0;  /* 100% 시점: 완전 투명 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 레이어 1: 텍스트 레이어 (맨 아래) -->
+    <div id="textLayer">
+        <div class="text-content">
+            <h1 id="mainText">
+                <!-- 텍스트는 JavaScript로 동적 생성 -->
+            </h1>
+        </div>
+    </div>
+
+    <!-- 레이어 2: 캔버스 레이어 (검은색 오버레이, 마우스로 지울 수 있음) -->
+    <canvas id="canvas"></canvas>
+    
+    <!-- 레이어 3: 안내 문구 (맨 위, 3초 후 사라짐) -->
+    <div class="instruction">
+        마우스를 드래그하여 텍스트를 드러내세요
+    </div>
+
+    <script>
+        // === 캔버스 초기 설정 ===
+        const canvas = document.getElementById('canvas');  // HTML에서 canvas 요소 가져오기
+        const ctx = canvas.getContext('2d');  // 2D 그리기 컨텍스트 가져오기
+        const mainText = document.getElementById('mainText');  // 텍스트 요소 가져오기
+        
+        // === 드로잉 상태 변수 ===
+        let isDrawing = false;  // 현재 그리는 중인지 여부
+        let lastX = 0;  // 이전 마우스 X 좌표
+        let lastY = 0;  // 이전 마우스 Y 좌표
+
+        // === 랜덤 텍스트 배열 ===
+        const textMessages = [
+            'Roses are red, violets<br>are sick, my name\'s<br><span class="name">Rifke</span>, <span class="highlight">get in touch</span><br>quick.',
+            'Design is thinking<br>made <span class="highlight">visual</span>',
+            'Creativity is<br><span class="highlight">intelligence</span><br>having <span class="name">fun</span>',
+            'Less is<br><span class="highlight">more</span>',
+            'Form follows<br><span class="highlight">function</span>',
+            'Simplicity is the<br>ultimate<br><span class="highlight">sophistication</span>',
+            'Good design is<br><span class="highlight">obvious</span><br>Great design is<br><span class="name">transparent</span>',
+            'Design is not just<br>what it looks like<br>Design is<br><span class="highlight">how it works</span>'
+        ];
+
+        // === 랜덤 텍스트 선택 및 표시 함수 ===
+        function changeText() {
+            const randomIndex = Math.floor(Math.random() * textMessages.length);
+            mainText.innerHTML = textMessages[randomIndex];
+        }
+
+        // === 캔버스 리셋 함수 (검은색으로 다시 채우기) ===
+        function resetCanvas() {
+            ctx.fillStyle = '#000';  // 채우기 색상을 검은색으로 설정
+            ctx.fillRect(0, 0, canvas.width, canvas.height);  // 캔버스 전체를 검은색으로 채움
+        }
+
+        // === 캔버스 크기 조정 함수 ===
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;  // 캔버스 너비를 윈도우 너비에 맞춤
+            canvas.height = window.innerHeight;  // 캔버스 높이를 윈도우 높이에 맞춤
+            resetCanvas();  // 캔버스를 검은색으로 채움
+        }
+
+        // === 초기화 ===
+        changeText();  // 페이지 로드 시 랜덤 텍스트 표시
+        resizeCanvas();  // 페이지 로드 시 캔버스 크기 설정
+        window.addEventListener('resize', resizeCanvas);  // 윈도우 크기 변경 시 캔버스 크기 재조정
+
+        // === 드로잉 시작 함수 ===
+        function startDrawing(e) {
+            isDrawing = true;  // 드로잉 모드 활성화
+            [lastX, lastY] = [e.offsetX, e.offsetY];  // 시작 지점 저장
+        }
+
+        // === 드로잉 함수 (마우스 드래그 시 실행) ===
+        function draw(e) {
+            if (!isDrawing) return;  // 드로잉 모드가 아니면 종료
+
+            // 캔버스 그리기 설정
+            ctx.globalCompositeOperation = 'destination-out';  // 지우개 모드 (그리는 부분을 투명하게 만듦)
+            ctx.strokeStyle = 'rgba(0,0,0,1)';  // 선 색상 (지우기 모드에서는 의미 없음)
+            ctx.lineWidth = 150;  // 브러시 크기 (이 값을 조정하면 브러시 크기 변경 가능)
+            ctx.lineCap = 'round';  // 선 끝 모양: 둥글게
+            ctx.lineJoin = 'round';  // 선 연결 부분: 둥글게
+            ctx.shadowBlur = 30;  // 블러 효과 강도 (숫자가 클수록 더 흐릿함)
+            ctx.shadowColor = 'rgba(0, 0, 0, 1)';  // 블러 색상 (검은색)
+
+            // 선 그리기 (이전 지점에서 현재 지점까지)
+            ctx.beginPath();  // 새로운 경로 시작
+            ctx.moveTo(lastX, lastY);  // 시작점으로 이동
+            ctx.lineTo(e.offsetX, e.offsetY);  // 현재 지점까지 선 그리기
+            ctx.stroke();  // 선을 실제로 그림
+
+            [lastX, lastY] = [e.offsetX, e.offsetY];  // 현재 지점을 다음 시작점으로 저장
+        }
+
+        // === 드로잉 종료 함수 (마우스를 떼면 실행) ===
+        function stopDrawing() {
+            if (isDrawing) {  // 실제로 드로잉 중이었다면
+                isDrawing = false;  // 드로잉 모드 비활성화
+                resetCanvas();  // 캔버스를 검은색으로 리셋
+                changeText();  // 랜덤 텍스트로 변경
+            }
+        }
+
+        // === 마우스 이벤트 리스너 등록 ===
+        canvas.addEventListener('mousedown', startDrawing);  // 마우스 버튼을 누르면 드로잉 시작
+        canvas.addEventListener('mousemove', draw);  // 마우스를 움직이면 그리기
+        canvas.addEventListener('mouseup', stopDrawing);  // 마우스 버튼을 떼면 드로잉 종료 + 리셋
+        canvas.addEventListener('mouseout', stopDrawing);  // 마우스가 캔버스 밖으로 나가면 드로잉 종료 + 리셋
+
+        // === 터치 이벤트 지원 (모바일/태블릿용) ===
+        
+        // 터치 시작 이벤트
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();  // 기본 터치 동작(스크롤 등) 방지
+            const touch = e.touches[0];  // 첫 번째 터치 지점 가져오기
+            const rect = canvas.getBoundingClientRect();  // 캔버스의 위치와 크기 정보 가져오기
+            const x = touch.clientX - rect.left;  // 캔버스 내 상대적인 X 좌표 계산
+            const y = touch.clientY - rect.top;  // 캔버스 내 상대적인 Y 좌표 계산
+            isDrawing = true;  // 드로잉 모드 활성화
+            [lastX, lastY] = [x, y];  // 시작 지점 저장
+        });
+
+        // 터치 이동 이벤트 (손가락을 움직이면서 그리기)
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();  // 기본 터치 동작 방지
+            if (!isDrawing) return;  // 드로잉 모드가 아니면 종료
+
+            const touch = e.touches[0];  // 첫 번째 터치 지점 가져오기
+            const rect = canvas.getBoundingClientRect();  // 캔버스 위치 정보 가져오기
+            const x = touch.clientX - rect.left;  // 상대적인 X 좌표
+            const y = touch.clientY - rect.top;  // 상대적인 Y 좌표
+
+            // 캔버스 그리기 설정 (마우스 드로잉과 동일)
+            ctx.globalCompositeOperation = 'destination-out';  // 지우개 모드
+            ctx.strokeStyle = 'rgba(0,0,0,1)';  // 선 색상
+            ctx.lineWidth = 150;  // 브러시 크기 (이 값을 조정하면 브러시 크기 변경 가능)
+            ctx.lineCap = 'round';  // 선 끝 모양: 둥글게
+            ctx.lineJoin = 'round';  // 선 연결 부분: 둥글게
+            ctx.shadowBlur = 30;  // 블러 효과 강도 (숫자가 클수록 더 흐릿함)
+            ctx.shadowColor = 'rgba(0, 0, 0, 1)';  // 블러 색상 (검은색)
+
+            // 선 그리기
+            ctx.beginPath();  // 새로운 경로 시작
+            ctx.moveTo(lastX, lastY);  // 시작점으로 이동
+            ctx.lineTo(x, y);  // 현재 지점까지 선 그리기
+            ctx.stroke();  // 선을 실제로 그림
+
+            [lastX, lastY] = [x, y];  // 현재 지점을 다음 시작점으로 저장
+        });
+
+        // 터치 종료 이벤트 (손가락을 떼면 드로잉 종료 + 리셋)
+        canvas.addEventListener('touchend', () => {
+            if (isDrawing) {  // 실제로 드로잉 중이었다면
+                isDrawing = false;  // 드로잉 모드 비활성화
+                resetCanvas();  // 캔버스를 검은색으로 리셋
+                changeText();  // 랜덤 텍스트로 변경
+            }
+        });
+    </script>
+</body>
+</html>
