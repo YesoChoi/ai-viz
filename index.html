@@ -91,10 +91,10 @@
             font-weight: bold;
         }
 
-        /* 비디오 컨테이너: 우측 섹션에 배치된 YouTube 영상 (1/2 크기로 축소 및 고정) */
+        /* 비디오 컨테이너: 우측 섹션에 배치된 YouTube 영상 (반응형) */
         .videoContainer {
-            width: 250px;  /* 고정 너비 (이전의 1/2) */
-            height: 140.625px;  /* 고정 높이 (16:9 비율 유지: 250 * 9/16) */
+            width: 100%;  /* 부모 컨테이너(우측 영역)의 너비에 맞춤 */
+            aspect-ratio: 16/9;  /* 16:9 비율 자동 유지 */
             box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);  /* 그림자 효과 */
             border-radius: 8px;  /* 모서리 둥글게 */
             overflow: hidden;  /* 둥근 모서리 적용 */
